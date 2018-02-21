@@ -18,8 +18,8 @@ dim_small = [44, 54]  # Width (x) = 176, Height (y) = 216
 celeba_images_directory = '/home/foo/data/celeba/img_align_celeba/'
 small_images_dir = '/home/foo/data/celeba/celeba_images_' + str(dim_small[0]) + '_' + str(dim_small[1]) + '/'
 
-large_images_dir = '/home/foo/data/celeba/celeba_images_' + str(dim_large[0]) + '_' + str(dim_large[1]) + '/'
-large_images_dir = '/home/foo/data/celeba/celeba_images_hr/'
+#large_images_dir = '/home/foo/data/celeba/celeba_images_' + str(dim_large[0]) + '_' + str(dim_large[1]) + '/'
+large_images_dir = '/home/foo/data/celeba/celeba_images_high_res/' #change hr->lr before running
 
 small_images_experiment_dir = '/home/foo/data/celeba/celeba_experiment_' + str(dim_small[0]) + '_' + str(dim_small[1]) + '/'
 large_images_experiment_dir = '/home/foo/data/celeba/celeba_experiment_' + str(dim_large[0]) + '_' + str(dim_large[1]) + '/'
@@ -28,7 +28,7 @@ large_images_experiment_dir = '/home/foo/data/celeba/celeba_experiment_' + str(d
 print('You need to create these directories: ', small_images_dir, large_images_dir, small_images_experiment_dir,
       large_images_experiment_dir)
 
-number_of_images_to_use = 202500#180000  # 202599 Total in data set
+number_of_images_to_use = 202500   # 202599 Total in data set
 
 for i in range(1, number_of_images_to_use):
     file_name = get_full_file_string_from_int(i)
