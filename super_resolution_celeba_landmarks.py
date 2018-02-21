@@ -80,26 +80,34 @@ def get_training_data_from_raw_batch(my_raw_batch, my_small_images_dim_x, my_sma
 def make_landmark_model_functional(my_small_images_dim_y, my_small_images_dim_x):
     small_images = Input(shape=(my_small_images_dim_x, my_small_images_dim_y, 3))
 
-    conv1 = Conv2D(120, kernel_size=(3, 3), activation='relu', strides=(1, 1), padding='same',
-                    kernel_initializer=initializers.RandomNormal(stddev=0.035))(small_images)
+    conv1 = Conv2D(128, kernel_size=(3, 3), activation='relu', strides=(1, 1), padding='same'
+                  )(small_images)
+    max1 = MaxPooling2D()(conv1)
+    #kernel_initializer=initializers.RandomNormal(stddev=0.035)
+    #drop1 = Dropout(.5)(max1)
+    conv2 = Conv2D(32, kernel_size=(5, 5), activation='relu', strides=(1, 1), padding='same'
+                   )(max1)
+    #max2 = MaxPooling2D()(conv2)
 
-    drop1 = Dropout(.2)(conv1)
-    conv2 = Conv2D(50, kernel_size=(5, 5), activation='relu', strides=(1, 1), padding='same',
-                   kernel_initializer=initializers.RandomNormal(stddev=0.023))(drop1)
-    drop2 = Dropout(.2)(conv2)
+    #conv3 = Conv2D(16, kernel_size=(3, 3), activation='relu', strides=(1, 1), padding='same'
+     #              )(max2)
+    conv3 = Conv2D(16, kernel_size=(9, 9), activation='relu', strides=(1, 1), padding='same'
+                   )(conv2)
+
+    drop2 = Dropout(.1)(conv3)
     flat = Flatten()(drop2)
 
     # flat_raw = Flatten()(small_images)
     #
     # flat_concat = keras.layers.concatenate([flat_raw, flat])
 
-    feature_rich = Dense(100, activation='relu')(flat)
+    feature_rich = Dense(130, activation='sigmoid')(flat)
     facial_features = Dense(10, activation='linear')(feature_rich)
 
     model = Model(inputs=small_images, outputs=facial_features)
-    optim = Adam(lr=0.00029, beta_1=0.8)
+    optim = Adam(lr=0.0004, beta_1=0.85)
     model.compile(loss='mse', optimizer=optim)
-
+    print(model.summary())
     return model
 
 def train_landmark_model(my_landmark_model, my_landmark_array, my_start_index, my_batch_epochs, my_batch_size,
@@ -118,25 +126,25 @@ def train_landmark_model(my_landmark_model, my_landmark_array, my_start_index, m
         # to floats in range 0.0-1.0 , & convert pixel location values to uv space percentages 0.0 - 1.0
         # x.shape=(32, 27, 22, 3), y.shape=(32, 10) x=low resolution images of faces,
         # and y is the location of eyes, nose and mouth in uv space
-
+        #print('f', y[11]*176.0)
         loss = my_landmark_model.train_on_batch(x, y)
         print(loss)
 
-        if batch_epoch % 20 == 0:
+        if batch_epoch % 10 == 0:
             print('----insdie-------')
             print('batch epoch', batch_epoch)
             print('Loss: ', loss)
-            # #        print('Image-id', raw_batch[0][0])
-            # print('Image-id', random_indices[0])
-            # p = landmark_model.predict(x)
-            # p = p * 176.0
-            # print('Prediction: ', p[0][0], p[0][2])  # first 2 values
-            # h5_filename = '/home/foo/data/celeba/models/landmark_model_batch_' + str(batch_epoch) + '_loss_' + str(loss) + '.h5'
-            #
-            # my_landmark_model.save(h5_filename, overwrite=True)  # 107,068,040 bytes
-            # #my_landmark_model.save(h5_filename)
-            # print('Written hdf5')
-            # print('------------------')
+            #        print('Image-id', raw_batch[0][0])
+            print('Image-id', random_indices[0])
+            p = landmark_model.predict(x)
+            #p = p * 176.0
+            print('Prediction: ',p[0][5], y[0][5], p[0][0], y[0][0], p[0][2], y[0][2])  # first 2 values
+            h5_filename = '/home/foo/data/celeba/models/super_res_landmark_model_batch_' + str(batch_epoch) + '_loss_' + str(loss) + '.h5'
+
+            my_landmark_model.save(h5_filename, overwrite=True)  # 107,068,040 bytes
+            #my_landmark_model.save(h5_filename)
+            print('Written hdf5')
+            print('------------------')
 
     return my_landmark_model
 
@@ -150,7 +158,7 @@ large_images_dir = '/home/foo/data/celeba/celeba_images_high_res/'
 
 start_index = 300 #
 
-number_of_images_to_use = 2000#150000
+number_of_images_to_use = 32000#6000#150000
 batch_size = 256
 batch_epochs = 2500
 
