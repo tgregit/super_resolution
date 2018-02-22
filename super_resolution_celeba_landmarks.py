@@ -153,14 +153,18 @@ def train_landmark_model(my_landmark_model, my_landmark_array, my_start_index, m
 super_seed = 1234
 random.seed(super_seed)
 np.random.seed(super_seed)
-small_images_dir = '/home/foo/data/celeba/celeba_images_hr/' # TODO: changeh this later!
+
+# photox/datasets/celeba_images_low_res_floyd/1
+# photox/datasets/celeba_images_high_res_floyd/1
+# project - photox/super_resolution_floyd
+small_images_dir = '/home/foo/data/celeba/celeba_images_low_res/'
 large_images_dir = '/home/foo/data/celeba/celeba_images_high_res/'
 
 start_index = 300 #
 
-number_of_images_to_use = 32000#6000#150000
+number_of_images_to_use = 10000# test 32000#6000#150000
 batch_size = 256
-batch_epochs = 2500
+batch_epochs = 5 # for testing 2500
 
 # upsampled_number_of_images_to_use = 99000
 # upsampled_batch_size = 50#45
