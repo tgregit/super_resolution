@@ -1,8 +1,8 @@
 import os
 import numpy as np
 import random
-from tqdm import tqdm
-import matplotlib.pyplot as plt
+#from tqdm import tqdm
+#import matplotlib.pyplot as plt
 import keras
 
 from keras.layers import Input, Merge, MaxPooling2D, LSTM
@@ -80,32 +80,36 @@ def get_training_data_from_raw_batch(my_raw_batch, my_small_images_dim_x, my_sma
 def make_landmark_model_functional(my_small_images_dim_y, my_small_images_dim_x):
     small_images = Input(shape=(my_small_images_dim_x, my_small_images_dim_y, 3))
 
-    conv1 = Conv2D(128, kernel_size=(3, 3), activation='relu', strides=(1, 1), padding='same'
+    conv1 = Conv2D(140, kernel_size=(3, 3), activation='relu', strides=(1, 1), padding='valid'
                   )(small_images)
     max1 = MaxPooling2D()(conv1)
     #kernel_initializer=initializers.RandomNormal(stddev=0.035)
-    #drop1 = Dropout(.5)(max1)
-    conv2 = Conv2D(32, kernel_size=(5, 5), activation='relu', strides=(1, 1), padding='same'
-                   )(max1)
-    #max2 = MaxPooling2D()(conv2)
+    drop1 = Dropout(.4)(max1)
+    conv2 = Conv2D(50, kernel_size=(5, 5), activation='relu', strides=(1, 1), padding='valid'
+                   )(drop1)
+    max2 = MaxPooling2D()(conv2)
+    conv3 = Conv2D(25, kernel_size=(7, 7), activation='relu', strides=(1, 1), padding='valid'
+                   )(max2)
+
 
     #conv3 = Conv2D(16, kernel_size=(3, 3), activation='relu', strides=(1, 1), padding='same'
      #              )(max2)
-    conv3 = Conv2D(16, kernel_size=(9, 9), activation='relu', strides=(1, 1), padding='same'
-                   )(conv2)
+    #conv3 = Conv2D(16, kernel_size=(9, 9), activation='relu', strides=(1, 1), padding='same'
+   #               )(conv2)
 
-    drop2 = Dropout(.1)(conv3)
+    drop2 = Dropout(.25)(conv3)
     flat = Flatten()(drop2)
 
     # flat_raw = Flatten()(small_images)
     #
     # flat_concat = keras.layers.concatenate([flat_raw, flat])
 
-    feature_rich = Dense(130, activation='sigmoid')(flat)
+    feature_rich = Dense(150, activation='sigmoid')(flat)
+    #feature_rich2 = Dense(50, activation='sigmoid')(feature_rich)
     facial_features = Dense(10, activation='linear')(feature_rich)
 
     model = Model(inputs=small_images, outputs=facial_features)
-    optim = Adam(lr=0.0004, beta_1=0.85)
+    optim = Adam(lr=0.00048, beta_1=0.85)
     model.compile(loss='mse', optimizer=optim)
     print(model.summary())
     return model
@@ -130,7 +134,7 @@ def train_landmark_model(my_landmark_model, my_landmark_array, my_start_index, m
         loss = my_landmark_model.train_on_batch(x, y)
         print(loss)
 
-        if batch_epoch % 10 == 0:
+        if batch_epoch % 500 == 0 or batch_epoch == 13:
             print('----insdie-------')
             print('batch epoch', batch_epoch)
             print('Loss: ', loss)
@@ -139,8 +143,8 @@ def train_landmark_model(my_landmark_model, my_landmark_array, my_start_index, m
             p = landmark_model.predict(x)
             #p = p * 176.0
             print('Prediction: ',p[0][5], y[0][5], p[0][0], y[0][0], p[0][2], y[0][2])  # first 2 values
-            h5_filename = '/home/foo/data/celeba/models/super_res_landmark_model_batch_' + str(batch_epoch) + '_loss_' + str(loss) + '.h5'
-
+            #h5_filename = '/home/foo/data/celeba/models/sr_lm' + str(batch_epoch) + '_loss_' + str(loss) + '.h5'
+            h5_filename = '/output/super_res_landmark_model_batch_' + str(batch_epoch) + '_loss_' + str(loss) + '.h5'
             my_landmark_model.save(h5_filename, overwrite=True)  # 107,068,040 bytes
             #my_landmark_model.save(h5_filename)
             print('Written hdf5')
@@ -148,8 +152,8 @@ def train_landmark_model(my_landmark_model, my_landmark_array, my_start_index, m
 
     return my_landmark_model
 
-
 # ----------------
+print('Starting super_resolution_celeba_landmarks.py....on floydhub!')
 super_seed = 1234
 random.seed(super_seed)
 np.random.seed(super_seed)
@@ -157,14 +161,22 @@ np.random.seed(super_seed)
 # photox/datasets/celeba_images_low_res_floyd/1
 # photox/datasets/celeba_images_high_res_floyd/1
 # project - photox/super_resolution_floyd
-small_images_dir = '/home/foo/data/celeba/celeba_images_low_res/'
-large_images_dir = '/home/foo/data/celeba/celeba_images_high_res/'
+small_images_dir = '/low/'
+large_images_dir = '/high/'
+landmarks_floyd = '/misc/list_landmarks_align_celeba.txt'
+
+# full command for floydhub cli
+# floyd run --data photox/datasets/celeba_images_low_res_floyd/1:low --data photox/datasets/celeba_images_high_res_floyd/1:high --data photox/datasets/celeba_misc_floyd/1:misc --gpu+ "python super_resolution_celeba_landmarks.py"
+
+# Loca
+#small_images_dir = '/home/foo/data/celeba/celeba_images_low_res/'
+#large_images_dir = '/home/foo/data/celeba/celeba_images_high_res/'
 
 start_index = 300 #
 
-number_of_images_to_use = 10000# test 32000#6000#150000
-batch_size = 256
-batch_epochs = 5 # for testing 2500
+number_of_images_to_use = 200000# test 32000#6000#150000
+batch_size = 512#256
+batch_epochs = 10000 # for testing 2500
 
 # upsampled_number_of_images_to_use = 99000
 # upsampled_batch_size = 50#45
@@ -178,11 +190,14 @@ large_images_dim_y = 216
 
 # ----------------
 
-landmark_array = get_landmarks('/home/foo/data/celeba/list_landmarks_align_celeba.txt', number_of_images_to_use)  # Turn the raw landmarks text file into an integer np array
+#landmark_array = get_landmarks('/home/foo/data/celeba/list_landmarks_align_celeba.txt', number_of_images_to_use)  # Turn the raw landmarks text file into an integer np array
+landmark_array = get_landmarks(landmarks_floyd, number_of_images_to_use)
+
 landmark_model = make_landmark_model_functional(small_images_dim_x, small_images_dim_y) # Build a supervised model that accepts very low resolution face images, and predicts the locations of 10 facial landmarks (such as nose location) -- (as uv percentages)
 
 trained_landmark_model = train_landmark_model(landmark_model, landmark_array, start_index, batch_epochs, batch_size, number_of_images_to_use, small_images_dim_x, small_images_dim_y, large_images_dim_x, large_images_dim_y, small_images_dir)
-trained_landmark_model.save('/home/foo/data/celeba/models/landmark_model_final.h5')
+trained_landmark_model.save('/output/landmark_model_final.h5')
+#trained_landmark_model.save('/home/foo/data/celeba/models/landmark_model_final.h5')
 print('Saved)')
 
 
