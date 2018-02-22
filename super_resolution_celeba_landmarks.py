@@ -167,7 +167,8 @@ landmarks_floyd = '/misc/list_landmarks_align_celeba.txt'
 
 # full command for floydhub cli
 # floyd run --data photox/datasets/celeba_images_low_res_floyd/1:low --data photox/datasets/celeba_images_high_res_floyd/1:high --data photox/datasets/celeba_misc_floyd/1:misc --gpu+ "python super_resolution_celeba_landmarks.py"
-# /photox/datasets/celeba_misc_floyd/2   landmark h5 file in 2?
+# /photox/datasets/celeba_misc_floyd/2
+#  landmark h5 file in 2?
 # Loca
 #small_images_dir = '/home/foo/data/celeba/celeba_images_low_res/'
 #large_images_dir = '/home/foo/data/celeba/celeba_images_high_res/'
