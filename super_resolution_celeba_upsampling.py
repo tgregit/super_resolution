@@ -87,41 +87,88 @@ def load_predict_and_save_images(my_image_numbers, my_upsampled_model, my_traine
 
     return low_res_imgs, predictions
 
+# def make_upsampled_model_functional(my_small_images_dim_x, my_small_images_dim_y, my_large_images_dim_x, my_large_images_dim_y):
+#     number_of_extra_inferred_dimensions = 24
+#
+#     images_small = Input(shape=(my_small_images_dim_y, my_small_images_dim_x, 3))
+#     landmarks = Input(shape=(10,))
+#
+#     extract1 = Conv2D(130, kernel_size=(5, 5), strides=(1, 1), padding='same', activation='relu')(images_small)
+#     pool1 = MaxPooling2D()(extract1)
+#     drop1 = Dropout(.3)(pool1)
+#     extract2 = Conv2D(60, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu')(drop1)
+#     pool2 = MaxPooling2D()(extract2)
+#     extract3 = Conv2D(40, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu')(pool2)
+#     #pool3 = MaxPooling2D()(extract3)
+#     flat = Flatten()(extract3)
+#     inferred_features = Dense(150, activation='sigmoid')(flat)
+#
+#     landmarks1 = Dense(80, activation='sigmoid')(landmarks)
+#
+#     #raw_rgb = Conv2D(32, kernel_size=(2, 2), strides=(1, 1), padding='same', activation='relu')(images_small)
+#     #upsampled_rgb = UpSampling2D()(raw_rgb)
+#
+#     #put the upsampled back???
+#     landmarks_and_inferred_features = keras.layers.concatenate([landmarks1, inferred_features])
+#
+#     flattened_medium_sized_generated_image = Dense(my_small_images_dim_y * 1 * my_small_images_dim_x * number_of_extra_inferred_dimensions, activation='relu')(landmarks_and_inferred_features)
+#     rectangular_medium_sized_image = Reshape((my_small_images_dim_y , my_small_images_dim_x , number_of_extra_inferred_dimensions))(flattened_medium_sized_generated_image)
+#     bigger_image = UpSampling2D()(rectangular_medium_sized_image)
+#
+#     #full_resolution_inferred = UpSampling2D()(bigger_image) # The third dimensions, usually 3 for RGB, is not RGB but rather n-dimensional feature space
+#
+#     #n_dimensional_image = keras.layers.concatenate([bigger_image, upsampled_rgb])
+#     n_dimensional_image_hr =  UpSampling2D()(bigger_image)
+#     n_conv1 = Conv2D(110, kernel_size=(5, 5), strides=(1, 1), padding='same', activation='relu')(n_dimensional_image_hr)
+#     final_image = Conv2D(3, kernel_size=(1, 1), strides=(1, 1), padding='same', activation='linear')(n_conv1)
+#
+#     model = Model(inputs=[images_small, landmarks], outputs=final_image)
+#     optim = Adam(lr=0.0003, beta_1=0.92)
+#     model.compile(loss='mse', optimizer=optim)
+#
+#     return model
+
 def make_upsampled_model_functional(my_small_images_dim_x, my_small_images_dim_y, my_large_images_dim_x, my_large_images_dim_y):
-    number_of_extra_inferred_dimensions  = 16
+    number_of_extra_inferred_dimensions = 12#24
 
     images_small = Input(shape=(my_small_images_dim_y, my_small_images_dim_x, 3))
     landmarks = Input(shape=(10,))
 
-    extract1 = Conv2D(32, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu')(images_small)
+    extract1 = Conv2D(120, kernel_size=(5, 5), strides=(1, 1), padding='same', activation='relu')(images_small)
     pool1 = MaxPooling2D()(extract1)
-    extract2 = Conv2D(32, kernel_size=(5, 5), strides=(1, 1), padding='same', activation='relu')(pool1)
-    pool2 = MaxPooling2D()(extract2)
-    extract3 = Conv2D(64, kernel_size=(7, 7), strides=(1, 1), padding='same', activation='relu')(pool2)
-    pool3 = MaxPooling2D()(extract3)
-    flat = Flatten()(pool3)
-    inferred_features = Dense(90, activation='sigmoid')(flat)
+    drop1 = Dropout(.3)(pool1)
+    extract2 = Conv2D(64, kernel_size=(7, 7), strides=(1, 1), padding='same', activation='relu')(drop1)
+    #pool2 = MaxPooling2D()(extract2)
+#    extract3 = Conv2D(32, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu')(pool2)
+ #   pool3 = MaxPooling2D()(extract3)
+    flat = Flatten()(extract2)
+    inferred_features = Dense(70, activation='sigmoid')(flat)
 
-    landmarks1 = Dense(30, activation='sigmoid')(landmarks)
+    landmarks1 = Dense(100, activation='sigmoid')(landmarks)
 
-    raw_rgb = Conv2D(32, kernel_size=(2, 2), strides=(1, 1), padding='same', activation='relu')(images_small)
-    upsampled_rgb = UpSampling2D()(raw_rgb)
+    #raw_rgb = Conv2D(4, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu')(images_small)
+    upsampled_rgb = UpSampling2D()(images_small)
+    upsampled_rgb_conv = Conv2D(32, kernel_size=(7, 7), strides=(1, 1), padding='same', activation='relu')(upsampled_rgb)
 
 
+    #put the upsampled back???
     landmarks_and_inferred_features = keras.layers.concatenate([landmarks1, inferred_features])
-    flattened_medium_sized_generated_image = Dense(my_small_images_dim_y * 1 * my_small_images_dim_x * number_of_extra_inferred_dimensions, activation='relu')(landmarks_and_inferred_features)
+    drop = Dropout(.25)(landmarks_and_inferred_features)
+
+    flattened_medium_sized_generated_image = Dense(my_small_images_dim_y * 1 * my_small_images_dim_x * number_of_extra_inferred_dimensions, activation='relu')(drop)
     rectangular_medium_sized_image = Reshape((my_small_images_dim_y , my_small_images_dim_x , number_of_extra_inferred_dimensions))(flattened_medium_sized_generated_image)
     bigger_image = UpSampling2D()(rectangular_medium_sized_image)
 
+
     #full_resolution_inferred = UpSampling2D()(bigger_image) # The third dimensions, usually 3 for RGB, is not RGB but rather n-dimensional feature space
 
-    n_dimensional_image = keras.layers.concatenate([bigger_image, upsampled_rgb])
+    n_dimensional_image = keras.layers.concatenate([bigger_image,  upsampled_rgb_conv])
     n_dimensional_image_hr =  UpSampling2D()(n_dimensional_image)
-    n_conv1 = Conv2D(64, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu')(n_dimensional_image_hr)
-    final_image = Conv2D(3, kernel_size=(2, 2), strides=(1, 1), padding='same', activation='linear')(n_conv1)
+    n_conv1 = Conv2D(16, kernel_size=(5, 5), strides=(1, 1), padding='same', activation='relu')(n_dimensional_image_hr)
+    final_image = Conv2D(3, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='linear')(n_conv1)
 
     model = Model(inputs=[images_small, landmarks], outputs=final_image)
-    optim = Adam(lr=0.00027, beta_1=0.92)
+    optim = Adam(lr=0.00027, beta_1=0.88)
     model.compile(loss='mse', optimizer=optim)
 
     return model
@@ -180,7 +227,7 @@ def train_upsampled_model(my_upsampled_model, my_trained_landmarks_model, my_sta
         if (batch_epoch % 500 == 0) or (batch_epoch in [0, 10, 100, 500]):
             print('Loss',loss)
 
-            image_numbers = np.array([19, 26, 35, 40, 20, 4, 111,136,147,221])
+            image_numbers = np.array([ 35, 40, 20, 4, 111,136,177,222,255])
             #image_numbers = np.array([26, 35, 88, 4])
             low_res_images, upsampled_images = load_predict_and_save_images(image_numbers, my_upsampled_model,
                                                                             my_trained_landmarks_model, True,
@@ -231,7 +278,7 @@ start_index = 300 #
 
 upsampled_number_of_images_to_use = 200000  # 200000
 upsampled_batch_size = 100#45
-upsampled_batch_epochs = 10000
+upsampled_batch_epochs = 8000
 
 small_images_dim_x = 44
 small_images_dim_y = 54
