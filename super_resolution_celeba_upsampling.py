@@ -43,7 +43,7 @@ def load_predict_and_save_images(my_image_numbers, my_upsampled_model, my_traine
         low_res_image = cv2.imread(low_res_path, 3)
         high_res_image = cv2.imread(high_res_path, 3)
 #        bicubic_image = cv2.resize(low_res_image, None, fx=8, fy=8, interpolation=cv2.INTER_CUBIC)
-        bicubic_image = cv2.resize(low_res_image, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
+        bicubic_image = cv2.resize(low_res_image, None, fx=8, fy=8, interpolation=cv2.INTER_LANCZOS4)
 
 
         #dir_prefix = '/home/foo/data/celeba/generated/'
@@ -153,10 +153,10 @@ def make_upsampled_model_functional(my_small_images_dim_x, my_small_images_dim_y
     extract2 = Conv2D(26, kernel_size=(5, 5), strides=(1, 1), padding='same', activation='relu')(drop1)
     pool2 = MaxPooling2D()(extract2)
     drop2 = Dropout(.2)(pool2)
-    extract3 = Conv2D(14, kernel_size=(7, 7), strides=(1, 1), padding='same', activation='relu')(drop2)
-    pool3 = MaxPooling2D()(extract3)
+    #extract3 = Conv2D(14, kernel_size=(7, 7), strides=(1, 1), padding='same', activation='relu')(drop2)
+    #pool3 = MaxPooling2D()(extract3)
 
-    flat = Flatten()(pool3)
+    flat = Flatten()(drop2)
     inferred_features = Dense(110, activation='sigmoid')(flat)
 
     landmarks1 = Dense(110, activation='sigmoid')(landmarks)
@@ -179,9 +179,17 @@ def make_upsampled_model_functional(my_small_images_dim_x, my_small_images_dim_y
     full_resolution_inferred = UpSampling2D()(big_conv2) # The third dimensions, usually 3 for RGB, is not RGB but rather n-dimensional feature space
 
 
-    n_conv1 = Conv2D(32, kernel_size=(7, 7), strides=(1, 1), padding='same', activation='relu')(full_resolution_inferred)
-    n_conv2 = Conv2D(16, kernel_size=(5, 5), strides=(1, 1), padding='same', activation='relu')(n_conv1)
-    final_image = Conv2D(3, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='linear')(n_conv2)
+    n_conv1 = Conv2D(24, kernel_size=(7, 7), strides=(1, 1), padding='same', activation='relu')(full_resolution_inferred)
+    n_conv2 = Conv2D(12, kernel_size=(5, 5), strides=(1, 1), padding='same', activation='relu')(n_conv1)
+
+    #almost_final_image = Conv2D(3, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='linear')(n_conv2)
+
+    fi = UpSampling2D()(n_conv2)
+    fi_conv1 = Conv2D(24, kernel_size=(7, 7), strides=(1, 1), padding='same', activation='relu')(fi)
+    fi_conv2 = Conv2D(12, kernel_size=(5, 5), strides=(1, 1), padding='same', activation='relu')(fi_conv1)
+    final_image = Conv2D(3, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='linear')(fi_conv2)
+
+
 
     model = Model(inputs=[images_small, landmarks], outputs=final_image)
     optim = Adam(lr=0.0005, beta_1=0.91)
@@ -287,7 +295,8 @@ def train_upsampled_model(my_upsampled_model, my_trained_landmarks_model, my_sta
                                                                    my_large_images_dim_y, my_small_images_dir,
                                                                    my_large_images_dir)
 
-        x_landmarks = my_trained_landmarks_model.predict(x_small)  # we use the previously trained  (fully supervised)
+        #x_landmarks = my_trained_landmarks_model.predict(x_small)  # we use the previously trained  (fully supervised)
+        x_landmarks = my_trained_landmarks_model.predict(x)
         # landmarks model, to make some predictions that are then used (here) as input to the upsampling model
 
 
@@ -297,7 +306,7 @@ def train_upsampled_model(my_upsampled_model, my_trained_landmarks_model, my_sta
         if (batch_epoch % 500 == 0) or (batch_epoch in [0, 10, 100, 500]):
             print('Loss',loss)
 
-            image_numbers = np.array([ 35, 40, 20, 4, 111,136,177,222,255])
+            image_numbers = np.array([ 35, 40, 20, 4, 111,126,138,169,172,255])
             #image_numbers = np.array([26, 35, 88, 4])
             low_res_images, upsampled_images = load_predict_and_save_images(image_numbers, my_upsampled_model,
                                                                             my_trained_landmarks_model, True,
@@ -333,38 +342,41 @@ super_seed = 1234
 random.seed(super_seed)
 np.random.seed(super_seed)
 
-system_mode = 'local_cpu' # else 'floyd_hub_gpu'
+system_mode = 'floyd_gpu' #''local_cpu' # else 'floyd_hub_gpu'
+#system_mode = 'local_cpu'
 
 #floyd run --data photox/datasets/celeba_images_low_res_floyd/1:low --data photox/datasets/celeba_images_high_res_floyd/1:high --data photox/datasets/celeba_misc_floyd/3:misc --gpu+ "python super_resolution_celeba_upsampling.py"
 #photox/datasets/celeba_misc_floyd/3
+#photox/datasets/lowest/1
+# photox/datasets/celeba_misc_floyd/4
 
-small_images_dir = '/low/'  # these are the floyd hub dataset mount points
+small_images_dir = '/lowest/'#'/low/'  # these are the floyd hub dataset mount points
 large_images_dir = '/high/'
-landmark_model = '/misc/super_res_landmark_model_floyd.h5' # my /misc data set contains various files, hdf5s, txt and configs
+landmark_model = '/misc/super_res_landmark_model_floyd_lowest.h5' # my /misc data set contains various files, hdf5s, txt and configs
 upsampled_batch_size = 80
 upsampled_number_of_images_to_use = 200000
 upsampled_batch_epochs = 8000
 
 if system_mode == 'local_cpu':
-    small_images_dir = '/home/foo/data/celeba/celeba_images_low_res/'
+    small_images_dir = '/home/foo/data/celeba/celeba_images_lowest_res/'
     large_images_dir = '/home/foo/data/celeba/celeba_images_high_res/'
-    landmark_model = '/home/foo/data/celeba/models/super_res_landmark_model_floyd.h5'
-    upsampled_batch_size = 15
-    upsampled_number_of_images_to_use = 20000
+    landmark_model = '/home/foo/data/celeba/models/super_res_landmark_model_floyd_lowest.h5'
+    upsampled_batch_size = 2
+    upsampled_number_of_images_to_use = 2000
     upsampled_batch_epochs = 1000
 
 start_index = 300 #
 
-small_images_dim_x = 44
-small_images_dim_y = 54
+small_images_dim_x = 22
+small_images_dim_y = 27
 
 large_images_dim_x = 176
 large_images_dim_y = 216
 #----------------------------
 
-#f = h5py.File(landmark_model, 'r+') # This is a bug I believe caused by a newer version of keras.model on floydhub I should upgrade mine and this may be removed
-#del f['optimizer_weights']
-#f.close()
+# f = h5py.File(landmark_model, 'r+') # This is a bug I believe caused by a newer version of keras.model on floydhub I should upgrade mine and this may be removed
+# del f['optimizer_weights']
+# f.close()
 
 trained_landmark_model = load_model(landmark_model)  # leakyrelu causes load error doiscussed here:   https://github.com/keras-team/keras/issues/7107
 # ------>
