@@ -323,16 +323,8 @@ def train_upsampled_model(my_upsampled_model, my_trained_landmarks_model, my_sta
 
             h5_name = dir_prefix + str(batch_epoch) + '-' + str(loss) + '.h5'
 
-            # with open(json_name, 'w') as f:
-            #     f.write(my_upsampled_model.to_json())
-            #     print('wrote-json... ', json_name)
 
-            #my_upsampled_model.save(h5_name)
-            #my_upsampled_model.save_weights(h5_name,overwrite=True)
             my_upsampled_model.save(h5_name, overwrite=True, include_optimizer=True)
-
-            #my_upsampled_model.save_weights(h5_name)
-            #print('Model written.....', my_upsampled_model.summary())
 
 
     return my_upsampled_model
@@ -374,7 +366,7 @@ large_images_dim_x = 176
 large_images_dim_y = 216
 #----------------------------
 
-# f = h5py.File(landmark_model, 'r+') # This is a bug I believe caused by a newer version of keras.model on floydhub I should upgrade mine and this may be removed
+# f = h5py.File(landmark_model, 'r+') # If loading a modeling locally whiuch had been trained elsewhere, you may need to run this hack
 # del f['optimizer_weights']
 # f.close()
 
